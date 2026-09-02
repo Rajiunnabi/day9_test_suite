@@ -1,0 +1,65 @@
+# =====================================================================
+# The whole stack: Postgres + FastAPI + Next.js.
+# This file is the "production-shaped" definition. docker-compose.override.yml
+# sits on top of it for local development and is applied automatically.
+# =====================================================================
+
+services:
+  # ------------------------------------------------------------- database
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-task_tracker}
+    volumes:
+      # Named volume = the data survives `docker compose down` and rebuilds.
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Host 5433, not 5432, so this does not fight your locally installed
+      # Postgres. Connect DBeaver to localhost:5433.
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-task_tracker}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ------------------------------------------------------------ migrations
+  # Runs once, exits, and the API waits for it to finish successfully. This is
+  # why migrations never race two API replicas starting at the same time.
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    env_file: .env.docker
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ------------------------------------------------------------------ api
+  api:
+    build: .
+    env_file: .env.docker
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # ------------------------------------------------------------------ web
+  web:
+    build: ./frontend
+    environment:
+      # "api" is the service name — Docker's internal DNS resolves it to the
+      # API container. Port 8000 here is the CONTAINER port, not the host one.
+      API_BASE_URL: http://api:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

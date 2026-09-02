@@ -1,0 +1,38 @@
+# Everything here is excluded from the build context — the files Docker sends
+# to the daemon before building. Keeping it small makes builds faster and
+# stops secrets and junk from ending up in the image.
+
+# secrets — the container gets config from environment variables, never a
+# baked-in .env file
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# the frontend has its own image and its own build context
+frontend/
+
+# vcs / editors / os
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# docs and local scratch
+*.md
+!README.md
+*.zip
+*.rar

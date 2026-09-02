@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+.env.local
+.env.*.local
+.git/
+.vscode/
+.idea/
+npm-debug.log*
+.DS_Store
+*.zip
+*.rar
+README.md
+AGENTS.md
+CLAUDE.md

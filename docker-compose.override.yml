@@ -1,0 +1,38 @@
+# =====================================================================
+# Development overrides. Compose reads this automatically on top of
+# docker-compose.yml, so plain `docker compose up` gives you the dev setup.
+#
+# To run the production shape instead, ignore this file explicitly:
+#   docker compose -f docker-compose.yml up --build
+# =====================================================================
+
+services:
+  api:
+    volumes:
+      - ./app:/app/app
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini
+    command:
+      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      ENVIRONMENT: local
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+
+  web:
+    build:
+      context: ./frontend
+      # Stop at the deps stage — we want`1                                                                                                                                                                                                                                             node_modules and the dev server,
+      # not a production build.
+      target: deps
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume keeps the container's node_modules from being hidden
+      # by the bind mount above (your host has no node_modules, or the wrong
+      # platform's binaries).
+      - /app/node_modules
+      - /app/.next
+    environment:
+      API_BASE_URL: http://api:8000/api/v1
+      NODE_ENV: development
